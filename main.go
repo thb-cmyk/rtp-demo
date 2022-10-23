@@ -34,12 +34,14 @@ func main() {
 func handleConnection(udpConn *net.UDPConn, f *os.File) {
 
 	buf := make([]byte, MTU+10)
-	_, err := udpConn.Read(buf)
+	index, err := udpConn.Read(buf)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("read length: %d, buffer length:%d\n\r", index, len(buf))
+		log.Print(err)
 	}
+	fmt.Printf("read length: %d, buffer length:%d\n\r", index, len(buf))
 	packet := rtp.Packet{}
-	packet.Unmarshal(buf)
+	packet.Unmarshal(buf[:index])
 
 	fmt.Printf("sequence number: %d\n\r", packet.Header.SequenceNumber)
 
@@ -65,7 +67,7 @@ func server() {
 
 	log.Print("udp listening ... ")
 
-	f, err := os.OpenFile("resource/test", os.O_RDWR|os.O_CREATE, 644)
+	f, err := os.OpenFile("resource/test", os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,7 +110,7 @@ func client() {
 				break
 			}
 			log.Printf("read length: %d, buffer length: %d\n\r", index, len(buf))
-			dataChann <- buf
+			dataChann <- buf[:index]
 		}
 		close(dataChann)
 		defer fd.Close()
@@ -156,7 +158,7 @@ func (rr *RRPayloader) Payload(mtu int, payload []byte) [][]byte {
 			log.Print(err)
 			break
 		} else {
-			payloads = append(payloads, buf)
+			payloads = append(payloads, buf[:index])
 		}
 	}
 
